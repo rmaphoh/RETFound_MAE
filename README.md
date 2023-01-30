@@ -51,7 +51,7 @@ pip install -r requirement.txt
 - Organise data (use IDRiD as example)
 
 <p align="left">
-  <img src="https://user-images.githubusercontent.com/11435359/146857310-f258c86c-fde6-48e8-9cee-badd2b21bd2c.png" width="480">
+  <img src="./pic/file_index.jpg" width="120">
 </p>
 
 

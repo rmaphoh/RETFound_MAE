@@ -51,7 +51,7 @@ pip install -r requirement.txt
 - Organise data (use IDRiD as example)
 
 <p align="left">
-  <img src="./pic/file_index.jpg" width="200">
+  <img src="./pic/file_index.jpg" width="160">
 </p>
 
 

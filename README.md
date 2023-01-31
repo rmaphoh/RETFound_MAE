@@ -48,7 +48,7 @@ pip install -r requirement.txt
 </tr>
 </tbody></table>
 
-- Organise data (use IDRiD as example)
+- Organise data (use IDRiD as [example]("Example.ipynb"))
 
 <p align="left">
   <img src="./pic/file_index.jpg" width="160">

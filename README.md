@@ -1,7 +1,7 @@
 ## RETFound - A foundation model for retinal imaging
 
 
-This is the official repo for RETFound, which is heavily based on [MAE](https://github.com/facebookresearch/mae):
+This is the official repo for RETFound, which is based on [MAE](https://github.com/facebookresearch/mae):
 
 
 ### Key features

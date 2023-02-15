@@ -3,6 +3,7 @@
 
 This is the official repo for RETFound, which is based on [MAE](https://github.com/facebookresearch/mae):
 
+Please contact 	**ykzhoua@gmail.com** or **yukun.zhou.19@ucl.ac.uk** if you have questions.
 
 ### Key features
 

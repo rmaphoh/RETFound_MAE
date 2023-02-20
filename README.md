@@ -18,6 +18,7 @@ Create enviroment with conda:
 
 ```
 conda create -n retfound python=3.6.15 -y
+conda activate retfound
 ```
 
 Install Pytorch 1.81 (cuda 11.1)
@@ -27,6 +28,8 @@ pip install torch==1.8.1+cu111 torchvision==0.9.1+cu111 torchaudio==0.8.1 -f htt
 
 Install others
 ```
+git clone https://github.com/rmaphoh/RETFound_MAE/
+cd RETFound_MAE
 pip install -r requirement.txt
 ```
 

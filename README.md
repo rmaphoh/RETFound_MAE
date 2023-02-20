@@ -97,7 +97,7 @@ python -m torch.distributed.launch --nproc_per_node=1 --master_port=48798 main_f
 ```
 
 
-### Load the model and weights
+### Load the model and weights (if you want to call the model in your code)
 
 ```
 import torch

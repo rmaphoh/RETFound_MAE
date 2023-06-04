@@ -5,9 +5,11 @@ This is the official repo for RETFound, which is based on [MAE](https://github.c
 
 Please contact 	**ykzhoua@gmail.com** or **yukun.zhou.19@ucl.ac.uk** if you have questions.
 
+Keras version implemented by Yuka Kihara can be found [here](https://github.com/uw-biomedical-ml/RETFound_MAE)
+
 ### Key features
 
-- RETFound was self-supervised pre-trained on 1.6 million retinal images
+- RETFound is pre-trained on 1.6 million retinal images with self-supervised learning
 - RETFound has been validated in multiple disease detection tasks
 - RETFound can be efficiently adapted to customised tasks
 

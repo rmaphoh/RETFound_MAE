@@ -19,7 +19,7 @@ Keras version implemented by Yuka Kihara can be found [here](https://github.com/
 Create enviroment with conda:
 
 ```
-conda create -n retfound python=3.6.15 -y
+conda create -n retfound python=3.7.5 -y
 conda activate retfound
 ```
 

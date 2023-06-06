@@ -65,7 +65,7 @@ pip install -r requirement.txt
 
 
 ```
-python -m torch.distributed.launch --nproc_per_node=1 --master_port=48798 main_finetune.py  
+python -m torch.distributed.launch --nproc_per_node=1 --master_port=48798 main_finetune.py \
     --batch_size 16 \
     --world_size 1 \
     --model vit_large_patch16 \
@@ -84,7 +84,7 @@ python -m torch.distributed.launch --nproc_per_node=1 --master_port=48798 main_f
 
 
 ```
-python -m torch.distributed.launch --nproc_per_node=1 --master_port=48798 main_finetune.py 
+python -m torch.distributed.launch --nproc_per_node=1 --master_port=48798 main_finetune.py \
     --eval --batch_size 16 \
     --world_size 1 \
     --model vit_large_patch16 \

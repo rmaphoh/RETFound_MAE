@@ -7,12 +7,17 @@ Please contact 	**ykzhoua@gmail.com** or **yukun.zhou.19@ucl.ac.uk** if you have
 
 Keras version implemented by Yuka Kihara can be found [here](https://github.com/uw-biomedical-ml/RETFound_MAE)
 
+
 ### Key features
 
 - RETFound is pre-trained on 1.6 million retinal images with self-supervised learning
 - RETFound has been validated in multiple disease detection tasks
 - RETFound can be efficiently adapted to customised tasks
 
+
+### News
+
+- A [visualisation demo](https://github.com/rmaphoh/RETFound_MAE/blob/main/RETFound_visualize.ipynb) is added
 
 ### Install enviroment
 

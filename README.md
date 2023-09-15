@@ -19,21 +19,17 @@ Keras version implemented by Yuka Kihara can be found [here](https://github.com/
 
 - A [visualisation demo](https://github.com/rmaphoh/RETFound_MAE/blob/main/RETFound_visualize.ipynb) is added
 
-### Install enviroment
+### Install environment
 
-Create enviroment with conda:
+1. Create environment with conda:
 
 ```
 conda create -n retfound python=3.7.5 -y
 conda activate retfound
 ```
 
-Install Pytorch 1.81 (cuda 11.1)
-```
-pip install torch==1.8.1+cu111 torchvision==0.9.1+cu111 torchaudio==0.8.1 -f https://download.pytorch.org/whl/torch_stable.html
-```
+2. Install dependencies
 
-Install others
 ```
 git clone https://github.com/rmaphoh/RETFound_MAE/
 cd RETFound_MAE
@@ -43,7 +39,9 @@ pip install -r requirement.txt
 
 ### Fine-tuning with RETFound weights
 
-- RETFound pre-trained weights
+To fine tune RETFound on your own data, follow these steps:
+
+1. Download the RETFound pre-trained weights
 <table><tbody>
 <!-- START TABLE -->
 <!-- TABLE HEADER -->
@@ -59,14 +57,14 @@ pip install -r requirement.txt
 </tr>
 </tbody></table>
 
-- Organise data (using IDRiD as an [example](Example.ipynb))
+2. Organise your data into this directory structure (using IDRiD as an [example](Example.ipynb))
 
 <p align="left">
   <img src="./pic/file_index.jpg" width="160">
 </p>
 
 
-- Start fine-tuning (use IDRiD as example). A fine-tuned checkpoint will be saved during training. Evaluation will be run after training.
+3. Start fine-tuning (use IDRiD as example). A fine-tuned checkpoint will be saved during training. Evaluation will be run after training.
 
 
 ```
@@ -85,7 +83,7 @@ python -m torch.distributed.launch --nproc_per_node=1 --master_port=48798 main_f
 ```
 
 
-- For evaluation only
+4. For evaluation only
 
 
 ```
@@ -106,7 +104,7 @@ python -m torch.distributed.launch --nproc_per_node=1 --master_port=48798 main_f
 
 ### Load the model and weights (if you want to call the model in your code)
 
-```
+```python
 import torch
 import models_vit
 from util.pos_embed import interpolate_pos_embed

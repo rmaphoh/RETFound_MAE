@@ -78,7 +78,8 @@ python -m torch.distributed.launch --nproc_per_node=1 --master_port=48798 main_f
     --nb_classes 5 \
     --data_path ./IDRiD_data/ \
     --task ./finetune_IDRiD/ \
-    --finetune ./RETFound_cfp_weights.pth
+    --finetune ./RETFound_cfp_weights.pth \
+    --input_size 224
 
 ```
 
@@ -97,7 +98,8 @@ python -m torch.distributed.launch --nproc_per_node=1 --master_port=48798 main_f
     --nb_classes 5 \
     --data_path ./IDRiD_data/ \
     --task ./internal_IDRiD/ \
-    --resume ./finetune_IDRiD/checkpoint-best.pth
+    --resume ./finetune_IDRiD/checkpoint-best.pth \
+    --input_size 224
 
 ```
 

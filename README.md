@@ -1,7 +1,7 @@
 ## RETFound - A foundation model for retinal imaging
 
 
-This is the official repo for RETFound, which is based on [MAE](https://github.com/facebookresearch/mae):
+This is the official repo for [RETFound: a foundation model for generalizable disease detection from retinal images](https://www.nature.com/articles/s41586-023-06555-x), which is based on [MAE](https://github.com/facebookresearch/mae):
 
 Please contact 	**ykzhoua@gmail.com** or **yukun.zhou.19@ucl.ac.uk** if you have questions.
 
@@ -141,4 +141,20 @@ trunc_normal_(model.head.weight, std=2e-5)
 
 print("Model = %s" % str(model))
 ```
+
+
+### Citation
+
+If you find this repository useful, please consider citing this paper:
+```
+@article{zhou2023foundation,
+  title={A foundation model for generalizable disease detection from retinal images},
+  author={Zhou, Yukun and Chia, Mark A and Wagner, Siegfried K and Ayhan, Murat S and Williamson, Dominic J and Struyven, Robbert R and Liu, Timing and Xu, Moucheng and Lozano, Mateo G and Woodward-Court, Peter and others},
+  journal={Nature},
+  pages={1--8},
+  year={2023},
+  publisher={Nature Publishing Group UK London}
+}
+```
+
 

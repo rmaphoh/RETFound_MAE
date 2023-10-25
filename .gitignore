@@ -5,7 +5,7 @@ __pycache__/
 
 # C extensions
 *.so
-
+*.pth
 # Distribution / packaging
 .Python
 build/
@@ -132,3 +132,5 @@ dmypy.json
 .pyre/
 
 IDRiD_data
+
+tmp.ipynb

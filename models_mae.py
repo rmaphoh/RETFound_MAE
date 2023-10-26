@@ -17,9 +17,10 @@ class SegmentationViT(nn.Module):
     def __init__(self, img_size=224, patch_size=16, in_chans=3,
                  embed_dim=1024, depth=24, num_heads=16,
                  decoder_embed_dim=512, decoder_depth=8, decoder_num_heads=16,
-                 mlp_ratio=4., norm_layer=nn.LayerNorm, norm_pix_loss=False):
+                 mlp_ratio=4., norm_layer=nn.LayerNorm, norm_pix_loss=False,num_class=1):
         super().__init__()
 
+        self.num_class=num_class
         # --------------------------------------------------------------------------
         # MAE encoder specifics
         self.patch_embed = PatchEmbed(img_size, patch_size, in_chans, embed_dim)
@@ -44,12 +45,12 @@ class SegmentationViT(nn.Module):
             for i in range(decoder_depth)])
 
         self.decoder_norm = norm_layer(decoder_embed_dim)
-        self.decoder_pred = nn.Linear(decoder_embed_dim, patch_size**2 * in_chans, bias=True) # decoder to patch
+        self.decoder_pred = nn.Linear(decoder_embed_dim, patch_size**2 * num_class, bias=True) # decoder to patch
         # --------------------------------------------------------------------------
 
         self.norm_pix_loss = norm_pix_loss
 
-        self.initialize_weights()
+        self.initialize_weights(encoder_model_path='./RETFound_cfp_weights.pth')
 
     def initialize_weights(self,encoder_model_path):
         # initialization encoder
@@ -111,16 +112,16 @@ class SegmentationViT(nn.Module):
 
     def unpatchify(self, x):
         """
-        x: (N, L, patch_size**2 *3)
-        imgs: (N, 3, H, W)
+        x: (N, L, patch_size**2 *num_class)
+        imgs: (N, num_class, H, W)
         """
         p = self.patch_embed.patch_size[0]
         h = w = int(x.shape[1]**.5)
         assert h * w == x.shape[1]
         
-        x = x.reshape(shape=(x.shape[0], h, w, p, p, 3))
+        x = x.reshape(shape=(x.shape[0], h, w, p, p, self.num_class))
         x = torch.einsum('nhwpqc->nchpwq', x)
-        imgs = x.reshape(shape=(x.shape[0], 3, h * p, h * p))
+        imgs = x.reshape(shape=(x.shape[0], self.num_class, h * p, h * p))
         return imgs
 
     def forward_encoder(self, x):
@@ -167,7 +168,7 @@ class SegmentationViT(nn.Module):
     def forward(self, imgs):
         latent = self.forward_encoder(imgs)
         pred = self.forward_decoder(latent)  # [N, L, p*p*3]
-
+        pred=self.unpatchify(pred)
         return pred
 
 
@@ -183,3 +184,8 @@ def mae_vit_large_patch16_dec512d8b(**kwargs):
 
 # set recommended archs
 mae_vit_large_patch16 = mae_vit_large_patch16_dec512d8b  # decoder: 512 dim, 8 blocks
+if __name__ == '__main__':
+    model=mae_vit_large_patch16()
+    input_tensor=torch.zeros(size=(2,3,224,224))
+    outputs=model(input_tensor)
+    print(outputs.shape)

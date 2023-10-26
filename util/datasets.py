@@ -101,7 +101,7 @@ class ridge_segmentataion_dataset(Dataset):
 
         # Convert mask and pos_embed to tensor
         gt = self.totenor(gt)
-        gt[gt != 0] = 1.
+        gt[gt != 0] = 1
         img = self.img_transforms(img)
         return img, gt
 

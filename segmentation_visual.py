@@ -23,11 +23,12 @@ from models_mae import SegmentationViT
 import torch
 import torch.backends.cudnn as cudnn
 from torch.utils.tensorboard import SummaryWriter
-
+from torchvision import transforms
+from util.datasets import CropPadding
 import timm
-
+from timm.data.constants import IMAGENET_DEFAULT_MEAN, IMAGENET_DEFAULT_STD
 assert timm.__version__ == "0.3.2"  # version check
-
+from PIL import Image
 
 def get_args_parser():
     parser = argparse.ArgumentParser(
@@ -191,36 +192,13 @@ def main(args):
     else:
         log_writer = None
 
-    data_loader_train = torch.utils.data.DataLoader(
-        dataset_train, sampler=sampler_train,
-        batch_size=args.batch_size,
-        num_workers=args.num_workers,
-        pin_memory=args.pin_mem,
-        drop_last=True,
-    )
-
-    data_loader_val = torch.utils.data.DataLoader(
-        dataset_val, sampler=sampler_val,
-        batch_size=args.batch_size,
-        num_workers=args.num_workers,
-        pin_memory=args.pin_mem,
-        drop_last=False
-    )
-
-    data_loader_test = torch.utils.data.DataLoader(
-        dataset_test, sampler=sampler_test,
-        batch_size=args.batch_size,
-        num_workers=args.num_workers,
-        pin_memory=args.pin_mem,
-        drop_last=False
-    )
 
     model = SegmentationViT(
-        num_classes=args.nb_classes
+        num_classes=1
     )
 
     if args.finetune and not args.eval:
-        encoder_model_path=args.finetune
+        encoder_model_path='./finetune_rop/checkpoint-best.pth'
         if os.path.isfile(encoder_model_path):
             checkpoint = torch.load(encoder_model_path, map_location='cpu')
             print(f"Load pre-trained checkpoint from: {encoder_model_path}")
@@ -228,9 +206,6 @@ def main(args):
             model_dict = model.state_dict()
             loaded_dict={}
             for k,v in checkpoint_model.items():
-                if k.startswith('decoder'):
-                    print(f" Do not load the encoder parameter: {k}")
-                    continue
                 if k not in model_dict.keys():
                     print(f"parameter: {k} not in model state dict")
                     continue
@@ -240,103 +215,62 @@ def main(args):
         else:
             raise
     model.to(device)
+    model.eval()
+    
+    data_path=args.data_path
+    img_transforms=transforms.Compose([
+        CropPadding(),
+        transforms.Resize((224,224)),
+        transforms.ToTensor(),
+        transforms.Normalize(
+                mean=IMAGENET_DEFAULT_MEAN,
+                std=IMAGENET_DEFAULT_STD)
+    ])
+    with open(os.path.join(data_path,'annotations.json'),'r') as f:
+        data_dict=json.load(f)
+    with open(os.path.join(data_path,'split',f'{args.split_name}.json'),'r') as f:
+        split_list=json.load(f)['test']
+    with torch.no_grad():
+        for image_name in split_list:
+            data=data_dict[image_name]
+            
+            if data['stage']==0:
+                continue
+            img = Image.open(data['image_path']).convert('RGB')
+            img_tensor = img_transforms(img)
+            
+            img=img_tensor.unsqueeze(0).to(device)
+            output_img = model(img).squeeze().cpu()
+            # Resize the output to the original image size
+            print(output_img.shape)
+            output_img=torch.sigmoid(output_img)
+            # output_img=torch.where(output_img>=0.5,torch.ones_like(output_img),torch.zeros_like(output_img))
+            visual_mask(data['image_path'],output_img,save_path='./experiments/'+image_name)
 
-    model_without_ddp = model
-    n_parameters = sum(p.numel()
-                       for p in model.parameters() if p.requires_grad)
+def visual_mask(image_path, mask,save_path='./tmp.jpg'):
+    # Open the image file.
+    image = Image.open(image_path).convert("RGBA")  # Convert image to RGBA
+    image= CropPadding()(image)
+    image=transforms.Resize((224,224))(image)
+    # Create a blue mask.
+    mask_np = np.array(mask)
+    mask_blue = np.zeros((mask_np.shape[0], mask_np.shape[1], 4), dtype=np.uint8)  # 4 for RGBA
+    mask_blue[..., 2] = 255  # Set blue channel to maximum
+    mask_blue[..., 3] = (mask_np * 127.5).astype(np.uint8)  # Adjust alpha channel according to the mask value
 
-    print("Model = %s" % str(model_without_ddp))
-    print('number of params (M): %.2f' % (n_parameters / 1.e6))
+    # Convert mask to an image.
+    mask_image = Image.fromarray(mask_blue)
 
-    eff_batch_size = args.batch_size * args.accum_iter * misc.get_world_size()
+    # Overlay the mask onto the original image.
+    composite = Image.alpha_composite(image, mask_image)
 
-    if args.lr is None:  # only base_lr is specified
-        args.lr = args.blr * eff_batch_size / 256
+    # Convert back to RGB mode (no transparency).
+    rgb_image = composite.convert("RGB")
 
-    print("base lr: %.2e" % (args.lr * 256 / eff_batch_size))
-    print("actual lr: %.2e" % args.lr)
+    # Save the image with mask to the specified path.
+    rgb_image.save(save_path)
 
-    print("accumulate grad iterations: %d" % args.accum_iter)
-    print("effective batch size: %d" % eff_batch_size)
-
-    if args.distributed:
-        model = torch.nn.parallel.DistributedDataParallel(
-            model, device_ids=[args.gpu])
-        model_without_ddp = model.module
-
-    # build optimizer with layer-wise lr decay (lrd)
-    param_groups = lrd.param_groups_lrd(model_without_ddp, args.weight_decay,
-                                        # no_weight_decay_list=model_without_ddp.no_weight_decay(),
-                                        layer_decay=args.layer_decay
-                                        )
-    optimizer = torch.optim.AdamW(param_groups, lr=args.lr)
-    loss_scaler = NativeScaler()
-
-    # elif args.smoothing > 0.:
-    #     criterion = LabelSmoothingCrossEntropy(smoothing=args.smoothing)
-    # else:
-    criterion = torch.nn.BCEWithLogitsLoss()
-
-    print("criterion = %s" % str(criterion))
-
-    misc.load_model(args=args, model_without_ddp=model_without_ddp,
-                    optimizer=optimizer, loss_scaler=loss_scaler)
-
-    if args.eval:
-        test_stats, auc_roc = evaluate(
-            data_loader_test, model, device, args.task, epoch=0, mode='test', num_class=args.nb_classes)
-        exit(0)
-
-    print(f"Start training for {args.epochs} epochs")
-    start_time = time.time()
-    max_accuracy = 0.0
-    max_auc = 0.0
-    best_loss=999999
-    for epoch in range(args.start_epoch, args.epochs):
-        if args.distributed:
-            data_loader_train.sampler.set_epoch(epoch)
-        train_stats = train_one_epoch(
-            model, criterion, data_loader_train,
-            optimizer, device, epoch, loss_scaler,
-            args.clip_grad, 
-            log_writer=log_writer,
-            args=args
-        )
-
-        val_loss= evaluate(
-            data_loader_val, model, device, args.task, epoch, mode='val', num_class=args.nb_classes)
-        if val_loss<best_loss:
-            best_loss = val_loss
-
-            if args.output_dir:
-                misc.save_model(
-                    args=args, model=model, model_without_ddp=model_without_ddp, optimizer=optimizer,
-                    loss_scaler=loss_scaler, epoch=epoch)
-
-        if epoch == (args.epochs-1):
-            test_stats, auc_roc = evaluate(
-                data_loader_test, model, device, args.task, epoch, mode='test', num_class=args.nb_classes)
-
-        # if log_writer is not None:
-            # log_writer.add_scalar('perf/val_acc1', val_stats['acc1'], epoch)
-            # log_writer.add_scalar('perf/val_auc', val_auc_roc, epoch)
-            # log_writer.add_scalar('perf/val_loss', val_stats['loss'], epoch)
-
-        log_stats = {**{f'train_{k}': v for k, v in train_stats.items()},
-                     'epoch': epoch,
-                     'n_parameters': n_parameters}
-
-        if args.output_dir and misc.is_main_process():
-            if log_writer is not None:
-                log_writer.flush()
-            with open(os.path.join(args.output_dir, "log.txt"), mode="a", encoding="utf-8") as f:
-                f.write(json.dumps(log_stats) + "\n")
-
-    total_time = time.time() - start_time
-    total_time_str = str(datetime.timedelta(seconds=int(total_time)))
-    print('Training time {}'.format(total_time_str))
-
-
+   
 if __name__ == '__main__':
     args = get_args_parser()
     args = args.parse_args()

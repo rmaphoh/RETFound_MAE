@@ -17,10 +17,10 @@ class SegmentationViT(nn.Module):
     def __init__(self, img_size=224, patch_size=16, in_chans=3,
                  embed_dim=1024, depth=24, num_heads=16,
                  decoder_embed_dim=512, decoder_depth=8, decoder_num_heads=16,
-                 mlp_ratio=4., norm_layer=nn.LayerNorm, norm_pix_loss=False,num_class=1):
+                 mlp_ratio=4., norm_layer=nn.LayerNorm, norm_pix_loss=False,num_classes=1):
         super().__init__()
 
-        self.num_class=num_class
+        self.num_class=num_classes
         # --------------------------------------------------------------------------
         # MAE encoder specifics
         self.patch_embed = PatchEmbed(img_size, patch_size, in_chans, embed_dim)
@@ -45,14 +45,14 @@ class SegmentationViT(nn.Module):
             for i in range(decoder_depth)])
 
         self.decoder_norm = norm_layer(decoder_embed_dim)
-        self.decoder_pred = nn.Linear(decoder_embed_dim, patch_size**2 * num_class, bias=True) # decoder to patch
+        self.decoder_pred = nn.Linear(decoder_embed_dim, patch_size**2 * num_classes, bias=True) # decoder to patch
         # --------------------------------------------------------------------------
 
         self.norm_pix_loss = norm_pix_loss
 
-        self.initialize_weights(encoder_model_path='./RETFound_cfp_weights.pth')
+        self.initialize_weights()
 
-    def initialize_weights(self,encoder_model_path):
+    def initialize_weights(self):
         # initialization encoder
         pos_embed = get_2d_sincos_pos_embed(self.pos_embed.shape[-1], int(self.patch_embed.num_patches**.5),    cls_token=True)
         self.pos_embed.data.copy_(torch.from_numpy(pos_embed).float().unsqueeze(0))
@@ -70,22 +70,6 @@ class SegmentationViT(nn.Module):
         # initialize nn.Linear and nn.LayerNorm
         self.apply(self._init_weights)
 
-        if os.path.isfile(encoder_model_path):
-            checkpoint = torch.load(encoder_model_path, map_location='cpu')
-            print(f"Load pre-trained checkpoint from: {encoder_model_path}")
-            checkpoint_model = checkpoint['model']
-            model_dict = self.state_dict()
-            loaded_dict={}
-            for k,v in checkpoint_model.items():
-                if k.startswith('decoder'):
-                    print(f" Do not load the encoder parameter: {k}")
-                    continue
-                if k not in model_dict.keys():
-                    print(f"parameter: {k} not in model state dict")
-                    continue
-                loaded_dict[k]=v
-            # load pre-trained model
-            msg = self.load_state_dict(loaded_dict, strict=False)
     def _init_weights(self, m):
         if isinstance(m, nn.Linear):
             # we use xavier_uniform following official JAX ViT:

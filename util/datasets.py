@@ -59,9 +59,9 @@ def build_transform(is_train, args):
 
 class ridge_segmentataion_dataset(Dataset):
     def __init__(self, data_path, split, split_name):
-        with open(os.path.join(data_path, 'ridge_seg', 'split', f'{split_name}.json'), 'r') as f:
+        with open(os.path.join(data_path, 'split', f'{split_name}.json'), 'r') as f:
             split_list=json.load(f)
-        with open(os.path.join(data_path, 'ridge_seg', 'annotations.json'), 'r') as f:
+        with open(os.path.join(data_path, 'annotations.json'), 'r') as f:
             self.data_list=json.load(f)
         self.split_list=split_list[split]
         self.split = split
@@ -85,12 +85,13 @@ class ridge_segmentataion_dataset(Dataset):
         data = self.data_list[data_name]
         
         img = Image.open(data['image_path']).convert('RGB')
-        img = self.preprocess(img)
-        if data['ridge_diffusion_path'] is not None:
-            gt = Image.open(data['mask_path'])
+        
+        if 'ridge_diffusion_path' in data:
+            gt = Image.open(data['ridge_diffusion_path'])
         else:
             gt = Image.new("L", img.size)
-
+        img = self.preprocess(img)
+        gt=self.preprocess(gt)
         if self.split == "train":
             seed = torch.seed()
             torch.manual_seed(seed)
@@ -102,7 +103,7 @@ class ridge_segmentataion_dataset(Dataset):
         gt = self.totenor(gt)
         gt[gt != 0] = 1.
         img = self.img_transforms(img)
-        return img, gt, data
+        return img, gt
 
     def __len__(self):
         return len(self.split_list)

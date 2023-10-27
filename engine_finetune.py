@@ -85,7 +85,10 @@ def train_one_epoch(model: torch.nn.Module, criterion: torch.nn.Module,
             lr_sched.adjust_learning_rate(optimizer, data_iter_step / len(data_loader) + epoch, args)
 
         samples = samples.to(device, non_blocking=True)
-        targets = targets.to(device, non_blocking=True)
+        if isinstance(targets,tuple):
+            targets= tuple((xi.to(device, non_blocking=True)) for xi in targets)
+        else:
+            targets = targets.to(device, non_blocking=True)
 
 
         with torch.cuda.amp.autocast():
@@ -151,18 +154,20 @@ def evaluate(data_loader, model, device, task, epoch, mode, num_class):
     # switch to evaluation mode
     model.eval()
 
-    for batch in metric_logger.log_every(data_loader, 10, header):
-        images = batch[0]
-        target = batch[-1]
+    for images,targets in metric_logger.log_every(data_loader, 10, header):
+
         images = images.to(device, non_blocking=True)
-        target = target.to(device, non_blocking=True)
-        true_label=F.one_hot(target.to(torch.int64), num_classes=num_class)
+        class_tar,seg_tar=targets
+        class_tar=class_tar.to(device, non_blocking=True)
+        seg_tar=seg_tar.to(device, non_blocking=True)
+        true_label=F.one_hot(class_tar.to(torch.int64), num_classes=num_class)
 
         # compute output
         with torch.cuda.amp.autocast():
-            output = model(images)
-            loss = criterion(output, target)
-            prediction_softmax = nn.Softmax(dim=1)(output)
+            outputs = model(images)
+            loss = criterion(outputs, (class_tar,seg_tar))
+            class_out,seg_out=outputs
+            prediction_softmax = nn.Softmax(dim=1)(class_out)
             _,prediction_decode = torch.max(prediction_softmax, 1)
             _,true_label_decode = torch.max(true_label, 1)
 
@@ -171,7 +176,7 @@ def evaluate(data_loader, model, device, task, epoch, mode, num_class):
             true_label_onehot_list.extend(true_label.cpu().detach().numpy())
             prediction_list.extend(prediction_softmax.cpu().detach().numpy())
 
-        acc1,_ = accuracy(output, target, topk=(1,2))
+        acc1,_ = accuracy(class_out, class_tar, topk=(1,2))
 
         batch_size = images.shape[0]
         metric_logger.update(loss=loss.item())

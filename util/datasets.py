@@ -68,7 +68,8 @@ class ridge_segmentataion_dataset(Dataset):
         self.transforms = transforms.Compose([
             transforms.RandomHorizontalFlip(p=0.5),
             transforms.RandomVerticalFlip(p=0.5),
-            transforms.RandomRotation(degrees=45,interpolation=transforms.InterpolationMode.BILINEAR)
+            # transforms.RandomRotation(degrees=45,interpolation=transforms.InterpolationMode.BILINEAR),
+            Fix_RandomRotation(),
         ])
         self.img_transforms=transforms.Compose([
             transforms.ToTensor(),
@@ -103,7 +104,12 @@ class ridge_segmentataion_dataset(Dataset):
         gt = self.totenor(gt)
         gt[gt != 0] = 1
         img = self.img_transforms(img)
-        return img, gt
+
+        if data['stage']>0:
+            class_label=1
+        else:
+            class_label=0
+        return img, (gt,class_label)
 
     def __len__(self):
         return len(self.split_list)

@@ -35,6 +35,10 @@ from engine_finetune import train_one_epoch, evaluate
 
 def get_args_parser():
     parser = argparse.ArgumentParser('MAE fine-tuning for image classification', add_help=False)
+    parser.add_argument('--data_path', default='../autodl-tmp/dataset_ROP', type=str,
+                        help='dataset path')
+    parser.add_argument('--split_name', default='1', type=str,
+                        help='which split to load')
     parser.add_argument('--batch_size', default=64, type=int,
                         help='Batch size per GPU (effective batch size is batch_size * accum_iter * # gpus')
     parser.add_argument('--epochs', default=50, type=int)
@@ -115,8 +119,6 @@ def get_args_parser():
                         help='Use class token instead of global pool for classification')
 
     # Dataset parameters
-    parser.add_argument('--data_path', default='/home/jupyter/Mor_DR_data/data/data/IDRID/Disease_Grading/', type=str,
-                        help='dataset path')
     parser.add_argument('--class_number', default=2, type=int,
                         help='number of the classification types')
     parser.add_argument('--seg_number', default=1, type=int,
@@ -331,9 +333,9 @@ def main(args):
         if args.distributed:
             data_loader_train.sampler.set_epoch(epoch)
         train_stats = train_one_epoch(
-            model, criterion, data_loader_train,
-            optimizer, device, epoch, loss_scaler,
-            args.clip_grad, mixup_fn,
+            model=model, criterion=criterion, data_loader=data_loader_train,
+            optimizer=optimizer,device= device, epoch=epoch,loss_scaler= loss_scaler,
+            max_norm=args.clip_grad,  mixup_fn=mixup_fn,
             log_writer=log_writer,
             args=args
         )

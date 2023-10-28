@@ -109,7 +109,7 @@ class ridge_segmentataion_dataset(Dataset):
             class_label=1
         else:
             class_label=0
-        return img, (gt,class_label)
+        return img, (class_label,gt)
 
     def __len__(self):
         return len(self.split_list)

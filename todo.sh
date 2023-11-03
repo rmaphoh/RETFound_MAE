@@ -5,7 +5,7 @@ python -m torch.distributed.launch --nproc_per_node=1 --master_port=48798 main_f
     --epochs 50 \
     --blr 5e-3 --layer_decay 0.65 \
     --weight_decay 0.05 --drop_path 0.2 \
-    --class_number 2 \
+    --nb_classes 4 \
     --data_path ../autodl-tmp/dataset_ROP \
     --task ./finetune_rop/ \
     --finetune ./RETFound_cfp_weights.pth

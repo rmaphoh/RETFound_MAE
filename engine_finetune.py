@@ -10,8 +10,8 @@ import os
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from timm.utils import accuracy
 from timm.data import Mixup
+from timm.utils import accuracy
 from typing import Iterable, Optional
 import util.misc as misc
 import util.lr_sched as lr_sched
@@ -64,8 +64,7 @@ def misc_measures(confusion_matrix):
 def train_one_epoch(model: torch.nn.Module, criterion: torch.nn.Module,
                     data_loader: Iterable, optimizer: torch.optim.Optimizer,
                     device: torch.device, epoch: int, loss_scaler, max_norm: float = 0,
-                     mixup_fn: Optional[Mixup] = None,
-                     log_writer=None,
+                    mixup_fn: Optional[Mixup] = None, log_writer=None,
                     args=None):
     model.train(True)
     metric_logger = misc.MetricLogger(delimiter="  ")
@@ -81,16 +80,13 @@ def train_one_epoch(model: torch.nn.Module, criterion: torch.nn.Module,
         print('log_dir: {}'.format(log_writer.log_dir))
 
     for data_iter_step, (samples, targets) in enumerate(metric_logger.log_every(data_loader, print_freq, header)):
-        
+
         # we use a per iteration (instead of per epoch) lr scheduler
         if data_iter_step % accum_iter == 0:
             lr_sched.adjust_learning_rate(optimizer, data_iter_step / len(data_loader) + epoch, args)
-        
+
         samples = samples.to(device, non_blocking=True)
-        if isinstance(targets,tuple) or isinstance(targets,list):
-            targets= tuple((xi.to(device, non_blocking=True)) for xi in targets)
-        else:
-            targets = targets.to(device, non_blocking=True)
+        targets = targets.to(device, non_blocking=True)
 
         if mixup_fn is not None:
             samples, targets = mixup_fn(samples, targets)
@@ -158,20 +154,18 @@ def evaluate(data_loader, model, device, task, epoch, mode, num_class):
     # switch to evaluation mode
     model.eval()
 
-    for images,targets in metric_logger.log_every(data_loader, 10, header):
-
+    for batch in metric_logger.log_every(data_loader, 10, header):
+        images = batch[0]
+        target = batch[-1]
         images = images.to(device, non_blocking=True)
-        class_tar,seg_tar=targets
-        class_tar=class_tar.to(device, non_blocking=True)
-        seg_tar=seg_tar.to(device, non_blocking=True)
-        true_label=F.one_hot(class_tar.to(torch.int64), num_classes=num_class)
+        target = target.to(device, non_blocking=True)
+        true_label=F.one_hot(target.to(torch.int64), num_classes=num_class)
 
         # compute output
         with torch.cuda.amp.autocast():
-            outputs = model(images)
-            class_out,seg_out=outputs
-            loss = criterion(class_out, class_tar)
-            prediction_softmax = nn.Softmax(dim=1)(class_out)
+            output = model(images)
+            loss = criterion(output, target)
+            prediction_softmax = nn.Softmax(dim=1)(output)
             _,prediction_decode = torch.max(prediction_softmax, 1)
             _,true_label_decode = torch.max(true_label, 1)
 
@@ -180,7 +174,7 @@ def evaluate(data_loader, model, device, task, epoch, mode, num_class):
             true_label_onehot_list.extend(true_label.cpu().detach().numpy())
             prediction_list.extend(prediction_softmax.cpu().detach().numpy())
 
-        acc1,_ = accuracy(class_out, class_tar, topk=(1,2))
+        acc1,_ = accuracy(output, target, topk=(1,2))
 
         batch_size = images.shape[0]
         metric_logger.update(loss=loss.item())
@@ -211,4 +205,3 @@ def evaluate(data_loader, model, device, task, epoch, mode, num_class):
         plt.savefig(task+'confusion_matrix_test.jpg',dpi=600,bbox_inches ='tight')
     
     return {k: meter.global_avg for k, meter in metric_logger.meters.items()},auc_roc
-

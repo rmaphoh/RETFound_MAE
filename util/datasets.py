@@ -85,31 +85,20 @@ class ridge_segmentataion_dataset(Dataset):
         data_name = self.split_list[idx]
         data = self.data_list[data_name]
         
-        img = Image.open(data['image_path']).convert('RGB')
+        img = Image.open(data['enhanced_path']).convert('RGB')
         
-        if 'ridge_diffusion_path' in data:
-            gt = Image.open(data['ridge_diffusion_path'])
-        else:
-            gt = Image.new("L", img.size)
         img = self.preprocess(img)
-        gt=self.preprocess(gt)
         if self.split == "train":
-            seed = torch.seed()
-            torch.manual_seed(seed)
             img = self.transforms(img)
-            torch.manual_seed(seed)
-            gt = self.transforms(gt)
 
         # Convert mask and pos_embed to tensor
-        gt = self.totenor(gt)
-        gt[gt != 0] = 1
         img = self.img_transforms(img)
 
-        if data['stage']>0:
+        if 'ridge' in data:
             class_label=1
         else:
             class_label=0
-        return img, (class_label,gt)
+        return img, class_label
 
     def __len__(self):
         return len(self.split_list)

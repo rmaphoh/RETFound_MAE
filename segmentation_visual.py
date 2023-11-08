@@ -101,9 +101,10 @@ def get_args_parser():
                         help='Use class token instead of global pool for classification')
 
     # Dataset parameters
-    parser.add_argument('--nb_classes', default=1000, type=int,
+    parser.add_argument('--class_number', default=2, type=int,
                         help='number of the classification types')
-
+    parser.add_argument('--seg_number', default=1, type=int,
+                        help='number of the segmentation types')
     parser.add_argument('--output_dir', default='./output_dir',
                         help='path where to save, empty for no saving')
     parser.add_argument('--log_dir', default='./output_dir',
@@ -193,8 +194,11 @@ def main(args):
         log_writer = None
 
 
-    model = SegmentationViT(
-        num_classes=1
+    model = models_vit.__dict__[args.model](
+        num_classes=args.class_number,
+        seg_class=args.seg_number,
+        drop_path_rate=args.drop_path,
+        global_pool=args.global_pool,
     )
 
     if args.finetune and not args.eval:
@@ -240,7 +244,8 @@ def main(args):
             img_tensor = img_transforms(img)
             
             img=img_tensor.unsqueeze(0).to(device)
-            output_img = model(img).squeeze().cpu()
+            cls_token,output_img = model(img)
+            output_img=output_img.squeeze().cpu()
             # Resize the output to the original image size
             print(output_img.shape)
             output_img=torch.sigmoid(output_img)

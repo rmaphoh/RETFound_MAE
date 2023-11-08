@@ -27,7 +27,7 @@ import util.misc as misc
 from util.datasets import ridge_segmentataion_dataset
 from util.pos_embed import interpolate_pos_embed
 from util.misc import NativeScalerWithGradNormCount as NativeScaler
-from util.losses import MixLoss
+
 import models_vit
 
 from engine_finetune import train_one_epoch, evaluate
@@ -81,9 +81,7 @@ def get_args_parser():
                         help='Use AutoAugment policy. "v0" or "original". " + "(default: rand-m9-mstd0.5-inc1)'),
     parser.add_argument('--smoothing', type=float, default=0.1,
                         help='Label smoothing (default: 0.1)')
-    parser.add_argument('--class_loss_r', type=float, default=0.5,
-                        help='balance of segmentation and classification')
-    
+
     # * Random Erase params
     parser.add_argument('--reprob', type=float, default=0.25, metavar='PCT',
                         help='Random erase prob (default: 0.25)')
@@ -119,10 +117,9 @@ def get_args_parser():
                         help='Use class token instead of global pool for classification')
 
     # Dataset parameters
-    parser.add_argument('--class_number', default=2, type=int,
+    parser.add_argument('--nb_classes', default=1000, type=int,
                         help='number of the classification types')
-    parser.add_argument('--seg_number', default=1, type=int,
-                        help='number of the segmentation types')
+
     parser.add_argument('--output_dir', default='./output_dir',
                         help='path where to save, empty for no saving')
     parser.add_argument('--log_dir', default='./output_dir',
@@ -170,10 +167,6 @@ def main(args):
     np.random.seed(seed)
 
     cudnn.benchmark = True
-
-    # dataset_train = build_dataset(is_train='train', args=args)
-    # dataset_val = build_dataset(is_train='val', args=args)
-    # dataset_test = build_dataset(is_train='test', args=args)
 
     dataset_train = ridge_segmentataion_dataset(
         data_path=args.data_path, split='train', split_name=args.split_name)
@@ -248,11 +241,11 @@ def main(args):
         mixup_fn = Mixup(
             mixup_alpha=args.mixup, cutmix_alpha=args.cutmix, cutmix_minmax=args.cutmix_minmax,
             prob=args.mixup_prob, switch_prob=args.mixup_switch_prob, mode=args.mixup_mode,
-            label_smoothing=args.smoothing, num_classes=args.class_number)
+            label_smoothing=args.smoothing, num_classes=args.nb_classes)
     
     model = models_vit.__dict__[args.model](
-        num_classes=args.class_number,
-        seg_class=args.seg_number,
+        img_size=args.input_size,
+        num_classes=args.nb_classes,
         drop_path_rate=args.drop_path,
         global_pool=args.global_pool,
     )
@@ -263,7 +256,7 @@ def main(args):
         print("Load pre-trained checkpoint from: %s" % args.finetune)
         checkpoint_model = checkpoint['model']
         state_dict = model.state_dict()
-        for k in ['head.weight', 'head.bias','decoder_pred.weight','decoder_pred.bias']:
+        for k in ['head.weight', 'head.bias']:
             if k in checkpoint_model and checkpoint_model[k].shape != state_dict[k].shape:
                 print(f"Removing key {k} from pretrained checkpoint")
                 del checkpoint_model[k]
@@ -276,14 +269,12 @@ def main(args):
         print(msg)
 
         if args.global_pool:
-            assert set(msg.missing_keys) == {'head.weight',
-             'head.bias', 'fc_norm.weight', 'fc_norm.bias','decoder_pred.weight','decoder_pred.bias'}
+            assert set(msg.missing_keys) == {'head.weight', 'head.bias', 'fc_norm.weight', 'fc_norm.bias'}
         else:
-            assert set(msg.missing_keys) == {'head.weight', 'head.bias','decoder_pred.weight','decoder_pred.bias'}
+            assert set(msg.missing_keys) == {'head.weight', 'head.bias'}
 
         # manually initialize fc layer
         trunc_normal_(model.head.weight, std=2e-5)
-        trunc_normal_(model.decoder_pred.weight, std=2e-5)
 
     model.to(device)
 
@@ -316,13 +307,20 @@ def main(args):
     optimizer = torch.optim.AdamW(param_groups, lr=args.lr)
     loss_scaler = NativeScaler()
 
-    criterion=MixLoss(mixup_fn,args.smoothing,args.class_loss_r)
+    if mixup_fn is not None:
+        # smoothing is handled with mixup label transform
+        criterion = SoftTargetCrossEntropy()
+    elif args.smoothing > 0.:
+        criterion = LabelSmoothingCrossEntropy(smoothing=args.smoothing)
+    else:
+        criterion = torch.nn.CrossEntropyLoss()
+
     print("criterion = %s" % str(criterion))
 
     misc.load_model(args=args, model_without_ddp=model_without_ddp, optimizer=optimizer, loss_scaler=loss_scaler)
 
     if args.eval:
-        test_stats,auc_roc = evaluate(data_loader_test, model, device, args.task, epoch=0, mode='test',num_class=args.class_number)
+        test_stats,auc_roc = evaluate(data_loader_test, model, device, args.task, epoch=0, mode='test',num_class=args.nb_classes)
         exit(0)
 
     print(f"Start training for {args.epochs} epochs")
@@ -333,14 +331,14 @@ def main(args):
         if args.distributed:
             data_loader_train.sampler.set_epoch(epoch)
         train_stats = train_one_epoch(
-            model=model, criterion=criterion, data_loader=data_loader_train,
-            optimizer=optimizer,device= device, epoch=epoch,loss_scaler= loss_scaler,
-            max_norm=args.clip_grad,  mixup_fn=mixup_fn,
+            model, criterion, data_loader_train,
+            optimizer, device, epoch, loss_scaler,
+            args.clip_grad, mixup_fn,
             log_writer=log_writer,
             args=args
         )
 
-        val_stats,val_auc_roc = evaluate(data_loader_val, model, device,args.task,epoch, mode='val',num_class=args.class_number)
+        val_stats,val_auc_roc = evaluate(data_loader_val, model, device,args.task,epoch, mode='val',num_class=args.nb_classes)
         if max_auc<val_auc_roc:
             max_auc = val_auc_roc
             
@@ -351,7 +349,7 @@ def main(args):
         
 
         if epoch==(args.epochs-1):
-            test_stats,auc_roc = evaluate(data_loader_test, model, device,args.task,epoch, mode='test',num_class=args.class_number)
+            test_stats,auc_roc = evaluate(data_loader_test, model, device,args.task,epoch, mode='test',num_class=args.nb_classes)
 
         
         if log_writer is not None:

@@ -94,11 +94,16 @@ class ridge_segmentataion_dataset(Dataset):
         # Convert mask and pos_embed to tensor
         img = self.img_transforms(img)
 
+<<<<<<< HEAD
         if 'ridge' in data:
             class_label=1
         else:
             class_label=0
         return img, class_label
+=======
+        
+        return img,data["stage"]
+>>>>>>> a4f6bc2855de87c5bf87a32dd7f6a47aa4a24ff7
 
     def __len__(self):
         return len(self.split_list)

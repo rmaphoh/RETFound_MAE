@@ -175,42 +175,13 @@ def main(args):
     dataset_test = ridge_segmentataion_dataset(
         data_path=args.data_path, split='test', split_name=args.split_name)
 
-    if True:  # args.distributed:
-        num_tasks = misc.get_world_size()
-        global_rank = misc.get_rank()
-        sampler_train = torch.utils.data.DistributedSampler(
-            dataset_train, num_replicas=num_tasks, rank=global_rank, shuffle=True
-        )
-        print("Sampler_train = %s" % str(sampler_train))
-        if args.dist_eval:
-            if len(dataset_val) % num_tasks != 0:
-                print('Warning: Enabling distributed evaluation with an eval dataset not divisible by process number. '
-                      'This will slightly alter validation results as extra duplicate entries are added to achieve '
-                      'equal num of samples per-process.')
-            sampler_val = torch.utils.data.DistributedSampler(
-                dataset_val, num_replicas=num_tasks, rank=global_rank, shuffle=True)  # shuffle=True to reduce monitor bias
-        else:
-            sampler_val = torch.utils.data.SequentialSampler(dataset_val)
-            
-        if args.dist_eval:
-            if len(dataset_test) % num_tasks != 0:
-                print('Warning: Enabling distributed evaluation with an eval dataset not divisible by process number. '
-                      'This will slightly alter validation results as extra duplicate entries are added to achieve '
-                      'equal num of samples per-process.')
-            sampler_test = torch.utils.data.DistributedSampler(
-                dataset_test, num_replicas=num_tasks, rank=global_rank, shuffle=True)  # shuffle=True to reduce monitor bias
-        else:
-            sampler_test = torch.utils.data.SequentialSampler(dataset_test)
-            
 
-    if global_rank == 0 and args.log_dir is not None and not args.eval:
-        os.makedirs(args.log_dir, exist_ok=True)
-        log_writer = SummaryWriter(log_dir=args.log_dir+args.task)
-    else:
-        log_writer = None
+    os.makedirs(args.log_dir, exist_ok=True)
+    log_writer = SummaryWriter(log_dir=args.log_dir+args.task)
+   
 
     data_loader_train = torch.utils.data.DataLoader(
-        dataset_train, sampler=sampler_train,
+        dataset_train,
         batch_size=args.batch_size,
         num_workers=args.num_workers,
         pin_memory=args.pin_mem,
@@ -218,7 +189,7 @@ def main(args):
     )
 
     data_loader_val = torch.utils.data.DataLoader(
-        dataset_val, sampler=sampler_val,
+        dataset_val, 
         batch_size=args.batch_size,
         num_workers=args.num_workers,
         pin_memory=args.pin_mem,
@@ -226,7 +197,7 @@ def main(args):
     )
 
     data_loader_test = torch.utils.data.DataLoader(
-        dataset_test, sampler=sampler_test,
+        dataset_test,
         batch_size=args.batch_size,
         num_workers=args.num_workers,
         pin_memory=args.pin_mem,

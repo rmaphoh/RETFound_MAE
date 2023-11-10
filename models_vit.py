@@ -37,14 +37,10 @@ class VisionTransformer(timm.models.vision_transformer.VisionTransformer):
         for blk in self.blocks:
             x = blk(x)
 
-        if self.global_pool:
-            x = x[:, 1:, :].mean(dim=1)  # global pool without cls token
-            outcome = self.fc_norm(x)
-        else:
-            x = self.norm(x)
-            outcome = x[:, 0]
+        
+        x = self.norm(x)
 
-        return outcome
+        return x
     def get_embedding(self, x):
         B = x.shape[0]
         x = self.patch_embed(x)

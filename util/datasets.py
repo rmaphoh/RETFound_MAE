@@ -58,7 +58,7 @@ def build_transform(is_train, args):
     return transforms.Compose(t)
 
 class ridge_segmentataion_dataset(Dataset):
-    def __init__(self, data_path, split, split_name,mode='train'):
+    def __init__(self, data_path, split, split_name):
         with open(os.path.join(data_path, 'split', f'{split_name}.json'), 'r') as f:
             split_list=json.load(f)
         with open(os.path.join(data_path, 'annotations.json'), 'r') as f:
@@ -81,7 +81,6 @@ class ridge_segmentataion_dataset(Dataset):
             CropPadding(),
             transforms.Resize((224,224)),
         ])
-        self.mode=mode
     def __getitem__(self, idx):
         data_name = self.split_list[idx]
         data = self.data_list[data_name]
@@ -94,14 +93,22 @@ class ridge_segmentataion_dataset(Dataset):
 
         # Convert mask and pos_embed to tensor
         img = self.img_transforms(img)
+        
+        position = Image.open(data['pos_embed_path']).convert('L')
+        position = self.to_tensor(position)
+        position[position > 0] = 1
+        position = position.flatten()
 
         if 'ridge' in data:
-            class_label=1
+            class_label = 1
         else:
-            class_label=0
-        if self.mode=='visual':
-            return img,class_label,data_name
-        return img, class_label
+            class_label = 0
+        
+        # Concatenate class_label with position
+        combined_label = torch.cat([torch.tensor([class_label], dtype=position.dtype), position])
+
+        return img, combined_label
+
 
     def __len__(self):
         return len(self.split_list)

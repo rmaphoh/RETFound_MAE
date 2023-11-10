@@ -126,7 +126,8 @@ def visual_heatmap(image_path, attention_heatmap, save_path):
     image = Image.open(image_path).convert("RGB").crop((80, 0, 1570, 1200))
     
     # Normalize the attention heatmap to be between 0 and 255
-    heatmap = (attention_heatmap - attention_heatmap.min()) / (attention_heatmap.max() - attention_heatmap.min())
+    # heatmap = (attention_heatmap - attention_heatmap.min()) / (attention_heatmap.max() - attention_heatmap.min())
+    heatmap = attention_heatmap
     heatmap = (heatmap * 255).astype(np.uint8)
     
     # Create a color map using a LUT (look-up table)
@@ -134,7 +135,8 @@ def visual_heatmap(image_path, attention_heatmap, save_path):
                                       black="black", white="red")
     
     # Resize the colorized heatmap to match the size of the original image
-    heatmap_color = heatmap_color.resize(image.size, Image.LANCZOS)
+    heatmap_color = heatmap_color.resize(image.size, Image.NEAREST)
+
     
     # Superimpose the heatmap onto the original image
     superimposed_img = Image.blend(image, heatmap_color, alpha=0.5)

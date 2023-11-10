@@ -58,7 +58,7 @@ def build_transform(is_train, args):
     return transforms.Compose(t)
 
 class ridge_segmentataion_dataset(Dataset):
-    def __init__(self, data_path, split, split_name):
+    def __init__(self, data_path, split, split_name,mode='train'):
         with open(os.path.join(data_path, 'split', f'{split_name}.json'), 'r') as f:
             split_list=json.load(f)
         with open(os.path.join(data_path, 'annotations.json'), 'r') as f:
@@ -81,11 +81,12 @@ class ridge_segmentataion_dataset(Dataset):
             CropPadding(),
             transforms.Resize((224,224)),
         ])
+        self.mode=mode
     def __getitem__(self, idx):
         data_name = self.split_list[idx]
         data = self.data_list[data_name]
         
-        img = Image.open(data['enhanced_path']).convert('RGB')
+        img = Image.open(data['image_path']).convert('RGB')
         
         img = self.preprocess(img)
         if self.split == "train":
@@ -94,16 +95,13 @@ class ridge_segmentataion_dataset(Dataset):
         # Convert mask and pos_embed to tensor
         img = self.img_transforms(img)
 
-<<<<<<< HEAD
         if 'ridge' in data:
             class_label=1
         else:
             class_label=0
+        if self.mode=='visual':
+            return img,class_label,data_name
         return img, class_label
-=======
-        
-        return img,data["stage"]
->>>>>>> a4f6bc2855de87c5bf87a32dd7f6a47aa4a24ff7
 
     def __len__(self):
         return len(self.split_list)
@@ -149,3 +147,78 @@ class Fix_RandomRotation(object):
             format_string += ', center={0}'.format(self.center)
         format_string += ')'
         return format_string
+
+class ridge_visual_dataset(Dataset):
+    def __init__(self, data_path, split, split_name):
+        with open(os.path.join(data_path, 'split', f'{split_name}.json'), 'r') as f:
+            split_list=json.load(f)
+        with open(os.path.join(data_path, 'annotations.json'), 'r') as f:
+            self.data_list=json.load(f)
+        self.split_list=[]
+        for image_name in split_list[split]:
+            if 'ridge' in self.data_list[image_name]:
+                self.split_list.append(image_name)
+        self.split_list=self.split_list[:100]
+        self.split = split
+        self.img_transforms=transforms.Compose([
+            transforms.ToTensor(),
+            transforms.Normalize(
+                mean=IMAGENET_DEFAULT_MEAN,
+                std=IMAGENET_DEFAULT_STD)])
+        self.totenor=transforms.ToTensor()
+        self.preprocess=transforms.Compose([
+            CropPadding(),
+            transforms.Resize((224,224)),
+        ])
+    def __getitem__(self, idx):
+        data_name = self.split_list[idx]
+        data = self.data_list[data_name]
+        
+        img = Image.open(data['image_path']).convert('RGB')
+        
+        img = self.preprocess(img)
+        # Convert mask and pos_embed to tensor
+        img = self.img_transforms(img)
+
+        if 'ridge' in data:
+            class_label=1
+        else:
+            class_label=0
+        return img, class_label,data_name
+
+    def __len__(self):
+        return len(self.split_list)
+    
+class ridge_getembeding_dataset(Dataset):
+    def __init__(self, data_path):
+        with open(os.path.join(data_path, 'annotations.json'), 'r') as f:
+            self.data_list=json.load(f)
+        self.split_list=self.data_list.keys()
+        self.img_transforms=transforms.Compose([
+            transforms.ToTensor(),
+            transforms.Normalize(
+                mean=IMAGENET_DEFAULT_MEAN,
+                std=IMAGENET_DEFAULT_STD)])
+        self.totenor=transforms.ToTensor()
+        self.preprocess=transforms.Compose([
+            CropPadding(),
+            transforms.Resize((224,224)),
+        ])
+    def __getitem__(self, idx):
+        data_name = self.split_list[idx]
+        data = self.data_list[data_name]
+        
+        img = Image.open(data['image_path']).convert('RGB')
+        
+        img = self.preprocess(img)
+        # Convert mask and pos_embed to tensor
+        img = self.img_transforms(img)
+
+        if 'ridge' in data:
+            class_label=1
+        else:
+            class_label=0
+        return img, class_label,data_name
+
+    def __len__(self):
+        return len(self.split_list)

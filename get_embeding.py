@@ -106,23 +106,64 @@ def main(args):
     msg = model.load_state_dict(checkpoint_model, strict=False) 
     print(msg)
     model.to(device)
-    model.eval()
+    save_embedding_dir='./experiments/visual'
+    os.makedirs(save_embedding_dir,exist_ok=True)
+    os.system(f"rm -rf {save_embedding_dir}/*")
     with open(os.path.join(args.data_path,'annotations.json'),'r') as f:
         data_dict=json.load(f)
-    for x,labels,image_names in data_loader_test:
-        x=x.cuda()
-        outputs=model(x).cpu()
-        outputs=torch.softmax(outputs,dim=1)
-        predicts=torch.argmax(outputs,dim=1).detach().numpy()
-        att_map=model._get_attention_map(x).cpu().numpy()
-        for att,label,pred,image_name in zip(att_map,labels,predicts,image_names):
-            print(int(label),pred)
-            if label != pred:
-                visual_heatmap(
+    # Assuming data_dict is already loaded from 'annotations.json'
+    for x, labels, image_names in data_loader_test:
+        x = x.cuda()
+        outputs, embedding = model.get_embedding(x)
+        pred_patches=model.head(embedding)
+        pred_patches=torch.softmax(pred_patches,dim=-1).detach().cpu()
+        pred_patches=pred_patches[:,:,1]
+        bc,num_p=pred_patches.shape
+        pred_patches=pred_patches.reshape(bc,14,14).numpy()
+
+        for emb, label, image_name in zip(pred_patches, labels,  image_names):
+            save_path = os.path.join(save_embedding_dir, image_name[:-3] + '.pth')
+            # Store the embedding
+            visual_heatmap(
                 image_path=data_dict[image_name]['image_path'],
-                attention_heatmap=att,
+                attention_heatmap=emb,
                 save_path=os.path.join(args.save_dir,image_name)
             )
+
+    # Save the updated data dictionary
+    # with open(os.path.join(args.data_path, 'annotations.json'), 'w') as f:
+    #     json.dump(data_dict, f, indent=4)
+
+    # # Save the model head parameters
+    # torch.save(model.head.state_dict(), os.path.join(args.data_path, 'found_head.pth'))
+    
+    
+    # for x, labels, image_names in data_loader_test:
+    #     x = x.cuda()
+    #     outputs, embedding = model(x, return_embedding=True)  
+    #     preds_score = torch.softmax(outputs, dim=1).cpu()
+    #     predicts = torch.argmax(preds_score, dim=1)
+    #     embedding = embedding.detach().cpu()  # Detach embedding from computation graph and move to CPU
+
+    #     for emb, label, pred, image_name in zip(embedding, labels, predicts, image_names):
+    #         save_path = os.path.join(save_embedding_dir, image_name[:-3] + '.pth')
+    #         # Store the embedding
+    #         torch.save(emb, save_path)
+    #         # Update the data dictionary
+    #         data_dict[image_name]['found_embedding'] = {
+    #             'save_path': save_path,
+    #             'pred_label': pred.item(),
+    #             'class_result': pred.item() == label.item()
+    #         }
+
+    # # Save the updated data dictionary
+    # with open(os.path.join(args.data_path, 'annotations.json'), 'w') as f:
+    #     json.dump(data_dict, f, indent=4)
+
+    # # Save the model head parameters
+    # torch.save(model.head.state_dict(), os.path.join(args.data_path, 'found_head.pth'))
+
+
 if __name__ == '__main__':
     args = get_args_parser()
     args = args.parse_args()

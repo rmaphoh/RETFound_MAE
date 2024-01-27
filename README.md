@@ -63,10 +63,21 @@ To fine tune RETFound on your own data, follow these steps:
 
 2. Organise your data into this directory structure (Public datasets used in this study can be [downloaded here](BENCHMARK.md))
 
-<p align="left">
-  <img src="./pic/file_index.jpg" width="160">
-</p>
-
+```
+├── data folder
+    ├──train
+        ├──class_a
+        ├──class_b
+        ├──class_c
+    ├──val
+        ├──class_a
+        ├──class_b
+        ├──class_c
+    ├──test
+        ├──class_a
+        ├──class_b
+        ├──class_c
+``` 
 
 3. Start fine-tuning (use IDRiD as example). A fine-tuned checkpoint will be saved during training. Evaluation will be run after training.
 

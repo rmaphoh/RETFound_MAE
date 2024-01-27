@@ -17,6 +17,7 @@ Keras version implemented by Yuka Kihara can be found [here](https://github.com/
 
 ### 🎉News
 
+- 🐉2024/01: [Data split and model checkpoints]((BENCHMARK.md)) for public datasets are now online!
 - 🎄2023/12: [Colab notebook](https://colab.research.google.com/drive/1_X19zdMegmAlqPAEY0Ao659fzzzlx2IZ?usp=sharing) is now online - free GPU & simple operation!!!
 - 2023/09: a [visualisation demo](https://github.com/rmaphoh/RETFound_MAE/blob/main/RETFound_visualize.ipynb) is added
 - 2023/10: change the hyperparameter of [input_size](https://github.com/rmaphoh/RETFound_MAE#:~:text=finetune%20./RETFound_cfp_weights.pth%20%5C-,%2D%2Dinput_size%20224,-For%20evaluation%20only) for any image size
@@ -60,7 +61,7 @@ To fine tune RETFound on your own data, follow these steps:
 </tr>
 </tbody></table>
 
-2. Organise your data into this directory structure (using IDRiD as an [example](Example.ipynb))
+2. Organise your data into this directory structure (Public datasets used in this study can be [downloaded here](BENCHMARK.md))
 
 <p align="left">
   <img src="./pic/file_index.jpg" width="160">
@@ -87,7 +88,7 @@ python -m torch.distributed.launch --nproc_per_node=1 --master_port=48798 main_f
 ```
 
 
-4. For evaluation only
+4. For evaluation only (download data and model checkpoints [here](BENCHMARK.md); change the path below)
 
 
 ```
@@ -154,7 +155,9 @@ If you find this repository useful, please consider citing this paper:
   title={A foundation model for generalizable disease detection from retinal images},
   author={Zhou, Yukun and Chia, Mark A and Wagner, Siegfried K and Ayhan, Murat S and Williamson, Dominic J and Struyven, Robbert R and Liu, Timing and Xu, Moucheng and Lozano, Mateo G and Woodward-Court, Peter and others},
   journal={Nature},
-  pages={1--8},
+  volume={622},
+  number={7981},
+  pages={156--163},
   year={2023},
   publisher={Nature Publishing Group UK London}
 }

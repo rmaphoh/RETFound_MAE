@@ -1,7 +1,7 @@
 ## RETFound - Benckmark data split and model checkpoints
 
 
-Here we provide data split and model checkpoints to facilitate model comparison. Please remember to accordingly change the data_path, task, and nb_classes for model fine-tuning and evaluation.
+We provide data split and model checkpoints to facilitate model comparison. Please remember to adjust the data_path, task, and nb_classes for model fine-tuning and evaluation.
 
 ### Data split
 | Dataset | Download Link 1 |   Download Link 2 |
@@ -33,13 +33,13 @@ Here we provide data split and model checkpoints to facilitate model comparison.
 
 ### Official websites
 
-APTOS2019: https://www.kaggle.com/competitions/aptos2019-blindness-detection/data
-MESSIDOR2: https://www.adcis.net/en/third-party/messidor2/
-IDRID: https://ieee-dataport.org/open-access/indian-diabetic-retinopathy-image-dataset-idrid
-PAPILA: https://figshare.com/articles/dataset/PAPILA/14798004/1
-Glaucoma_fundus: https://dataverse.harvard.edu/dataset.xhtml?persistentId=doi:10.7910/DVN/1YRRAC
-JSIEC: https://zenodo.org/records/3477553
-Retina: https://www.kaggle.com/datasets/jr2ngb/cataractdataset
-OCTID: https://borealisdata.ca/dataverse/OCTID
+- APTOS2019: https://www.kaggle.com/competitions/aptos2019-blindness-detection/data
+- MESSIDOR2: https://www.adcis.net/en/third-party/messidor2/
+- IDRID: https://ieee-dataport.org/open-access/indian-diabetic-retinopathy-image-dataset-idrid
+- PAPILA: https://figshare.com/articles/dataset/PAPILA/14798004/1
+- Glaucoma_fundus: https://dataverse.harvard.edu/dataset.xhtml?persistentId=doi:10.7910/DVN/1YRRAC
+- JSIEC: https://zenodo.org/records/3477553
+- Retina: https://www.kaggle.com/datasets/jr2ngb/cataractdataset
+- OCTID: https://borealisdata.ca/dataverse/OCTID
 
 

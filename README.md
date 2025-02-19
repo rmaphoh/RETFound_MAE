@@ -160,7 +160,7 @@ torchrun --nproc_per_node=1 --master_port=48798 main_finetune.py \
     --data_path ./IDRiD \
     --input_size 224 \
     --task RETFound_mae_meh-IDRiD \
-    --resume ./finetune_IDRiD/checkpoint-best.pth
+    --resume ./RETFound_mae_meh-IDRiD/checkpoint-best.pth
 ```
 
 

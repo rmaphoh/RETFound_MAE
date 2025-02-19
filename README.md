@@ -120,7 +120,10 @@ huggingface-cli login --token YOUR_HUGGINGFACE_TOKEN
 model can be "RETFound_mae" or "RETFound_dinov2"
 ```
 ```
-finetune can be "RETFound_mae_natureOCT", "RETFound_mae_natureCFP", "RETFound_mae_meh", "RETFound_mae_shanghai", "RETFound_dinov2_meh", and "RETFound_dinov2_shanghai".
+when model is "RETFound_mae", finetune can be "RETFound_mae_natureOCT", "RETFound_mae_natureCFP", "RETFound_mae_meh", "RETFound_mae_shanghai".
+```
+```
+when model is "RETFound_dinov2", finetune can be "RETFound_dinov2_meh", and "RETFound_dinov2_shanghai".
 ```
 ```
 torchrun --nproc_per_node=1 --master_port=48798 main_finetune.py \

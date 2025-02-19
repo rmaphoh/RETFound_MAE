@@ -318,7 +318,7 @@ def main(args, criterion):
     print("effective batch size: %d" % eff_batch_size)
 
     if args.distributed:
-        model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[args.gpu])
+        model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[args.gpu],find_unused_parameters=True)
         model_without_ddp = model.module
 
     no_weight_decay = model_without_ddp.no_weight_decay() if hasattr(model_without_ddp, 'no_weight_decay') else []
@@ -332,6 +332,13 @@ def main(args, criterion):
     print("criterion = %s" % str(criterion))
 
     misc.load_model(args=args, model_without_ddp=model_without_ddp, optimizer=optimizer, loss_scaler=loss_scaler)
+    
+    for name, param in model.named_parameters():
+        if 'head' in name:
+            param.requires_grad = True
+        else:
+            param.requires_grad = False
+            
 
     if args.eval:
         if 'epoch' in checkpoint:

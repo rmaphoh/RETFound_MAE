@@ -12,7 +12,7 @@ from pathlib import Path
 
 import torch
 import torch.distributed as dist
-from torch._six import inf
+from math import inf
 
 
 class SmoothedValue(object):
@@ -282,51 +282,60 @@ def get_grad_norm_(parameters, norm_type: float = 2.0) -> torch.Tensor:
     if norm_type == inf:
         total_norm = max(p.grad.detach().abs().max().to(device) for p in parameters)
     else:
-        total_norm = torch.norm(torch.stack([torch.norm(p.grad.detach(), norm_type).to(device) for p in parameters]), norm_type)
+        total_norm = torch.norm(torch.stack([torch.norm(p.grad.detach(), norm_type).to(device) for p in parameters]),
+                                norm_type)
     return total_norm
 
 
-def save_model(args, epoch, model, model_without_ddp, optimizer, loss_scaler):
+def save_model(args, epoch, model, model_without_ddp, optimizer, loss_scaler, mode):
     output_dir = Path(args.output_dir)
     epoch_name = str(epoch)
+    os.makedirs(os.path.join(args.output_dir, args.task), exist_ok=True)
     if loss_scaler is not None:
-        checkpoint_paths = [args.task+'checkpoint-best.pth']
+        if mode == 'best':
+            checkpoint_paths = [os.path.join(args.output_dir, args.task, 'checkpoint-best.pth')]
+        else:
+            checkpoint_paths = [os.path.join(args.output_dir, args.task, 'checkpoint-latest.pth')]
         for checkpoint_path in checkpoint_paths:
-            to_save = {
-                'model': model_without_ddp.state_dict(),
-                'optimizer': optimizer.state_dict(),
-                'epoch': epoch,
-                'scaler': loss_scaler.state_dict(),
-                'args': args,
-            }
+            if mode == 'best':
+                to_save = {
+                    'model': model_without_ddp.state_dict(),
+                    'epoch': epoch,
+                    'args': args, }
+            else:
+                if epoch == args.epochs - 1:
+                    to_save = {
+                        'model': model_without_ddp.state_dict(),
+                        'args': args, }
+                else:
+                    to_save = {
+                        'model': model_without_ddp.state_dict(),
+                        'optimizer': optimizer.state_dict(),
+                        'epoch': epoch,
+                        'scaler': loss_scaler.state_dict(),
+                        'args': args,
+                    }
 
             save_on_master(to_save, checkpoint_path)
     else:
-        client_state = {'epoch': epoch}
-        model.save_checkpoint(save_dir=args.task, tag="checkpoint-best", client_state=client_state)
-
-
-def save_model_pretrain(args, epoch, model, model_without_ddp, optimizer, loss_scaler):
-    output_dir = Path(args.output_dir)
-    epoch_name = str(epoch)
-    if loss_scaler is not None:
-        print(model_without_ddp.state_dict().keys())
-        checkpoint_paths = [output_dir / ('checkpoint-%s.pth' % epoch_name)]
-        for checkpoint_path in checkpoint_paths:
+        if mode == 'best':
             to_save = {
                 'model': model_without_ddp.state_dict(),
-                'optimizer': optimizer.state_dict(),
-                'epoch': epoch,
-                'scaler': loss_scaler.state_dict(),
-                'args': args,
-            }
+                'epoch': epoch, }
+            torch.save(to_save, os.path.join(args.output_dir, args.task, "checkpoint-best.pth"))
+        else:
+            if epoch == args.epochs - 1:
+                to_save = {
+                    'model': model_without_ddp.state_dict(), }
+            else:
+                to_save = {
+                    'model': model_without_ddp.state_dict(),
+                    'optimizer': optimizer.state_dict(),
+                    'epoch': epoch,
+                    'args': args,
+                }
+            torch.save(to_save, os.path.join(args.output_dir, args.task, "checkpoint-latest.pth"))
 
-            save_on_master(to_save, checkpoint_path)
-    else:
-        client_state = {'epoch': epoch}
-        model.save_checkpoint(save_dir=args.output_dir, tag="checkpoint-%s" % epoch_name, client_state=client_state)
-        
-        
 
 def load_model(args, model_without_ddp, optimizer, loss_scaler):
     if args.resume:
@@ -335,7 +344,11 @@ def load_model(args, model_without_ddp, optimizer, loss_scaler):
                 args.resume, map_location='cpu', check_hash=True)
         else:
             checkpoint = torch.load(args.resume, map_location='cpu')
-        model_without_ddp.load_state_dict(checkpoint['model'])
+        if 'model' in checkpoint:
+            checkpoint_model = checkpoint['model']
+        else:
+            checkpoint_model = checkpoint
+        model_without_ddp.load_state_dict(checkpoint_model, strict=False)
         print("Resume checkpoint %s" % args.resume)
         if 'optimizer' in checkpoint and 'epoch' in checkpoint and not (hasattr(args, 'eval') and args.eval):
             optimizer.load_state_dict(checkpoint['optimizer'])
@@ -354,4 +367,3 @@ def all_reduce_mean(x):
         return x_reduce.item()
     else:
         return x
-    

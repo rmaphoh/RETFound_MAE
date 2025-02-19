@@ -1,0 +1,11 @@
+opencv-python~=4.9.0.80
+Pillow~=10.2.0
+pycm~=4.0
+scikit-learn~=1.4.2
+timm~=0.9.2
+
+numpy~=1.26.4
+matplotlib~=3.8.4
+scikit-multilearn~=0.2.0
+huggingface-hub~=0.23.4
+tensorboard~=2.17.0

@@ -14,7 +14,11 @@ def param_groups_lrd(model, weight_decay=0.05, no_weight_decay_list=[], layer_de
     param_group_names = {}
     param_groups = {}
 
-    num_layers = len(model.blocks) + 1
+    if hasattr(model, 'blocks'):
+        num_layers = len(model.blocks) + 1
+    else:
+        # use the number of layers in the ResNet model as a default value
+        num_layers = len(model.layer1) + len(model.layer2) + len(model.layer3) + len(model.layer4) + 1
 
     layer_scales = list(layer_decay ** (num_layers - i) for i in range(num_layers + 1))
 

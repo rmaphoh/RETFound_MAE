@@ -5,10 +5,11 @@
 
 from functools import partial
 
+import timm.models.vision_transformer
 import torch
 import torch.nn as nn
-
-import timm.models.vision_transformer
+import torch.nn.functional as F
+from torch import Tensor
 
 
 class VisionTransformer(timm.models.vision_transformer.VisionTransformer):
@@ -38,7 +39,7 @@ class VisionTransformer(timm.models.vision_transformer.VisionTransformer):
             x = blk(x)
 
         if self.global_pool:
-            x = x[:, 1:, :].mean(dim=1)  # global pool without cls token
+            x = x[:, 1:, :].mean(dim=1,keepdim=True)  # global pool without cls token
             outcome = self.fc_norm(x)
         else:
             x = self.norm(x)
@@ -47,9 +48,22 @@ class VisionTransformer(timm.models.vision_transformer.VisionTransformer):
         return outcome
 
 
-def vit_large_patch16(**kwargs):
+def RETFound_mae(**kwargs):
     model = VisionTransformer(
         patch_size=16, embed_dim=1024, depth=24, num_heads=16, mlp_ratio=4, qkv_bias=True,
         norm_layer=partial(nn.LayerNorm, eps=1e-6), **kwargs)
     return model
+
+
+
+def RETFound_dinov2(args, **kwargs):
+    model = timm.create_model(
+        'vit_large_patch14_dinov2.lvd142m',
+        pretrained=True,
+        img_size=224,
+        **kwargs
+    )
+    return model
+
+
 

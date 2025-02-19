@@ -115,15 +115,17 @@ huggingface-cli login --token YOUR_HUGGINGFACE_TOKEN
 
 4. Start fine-tuning (use IDRiD as example). A fine-tuned checkpoint will be saved during training. Evaluation will be automatically run after training.
 
-```
-model can be "RETFound_mae" or "RETFound_dinov2"
-```
-```
-when model is "RETFound_mae", finetune can be "RETFound_mae_natureOCT", "RETFound_mae_natureCFP", "RETFound_mae_meh", "RETFound_mae_shanghai".
-```
-```
-when model is "RETFound_dinov2", finetune can be "RETFound_dinov2_meh", and "RETFound_dinov2_shanghai".
-```
+The model and finetune can be selected:
+
+| model           | finetune                 |
+|-----------------|--------------------------|
+| RETFound_mae    | RETFound_mae_natureCFP   |
+| RETFound_mae    | RETFound_mae_natureOCT   |
+| RETFound_mae    | RETFound_mae_meh         |
+| RETFound_mae    | RETFound_mae_shanghai    |
+| RETFound_dinov2 | RETFound_dinov2_meh      |
+| RETFound_dinov2 | RETFound_dinov2_shanghai |
+
 ```
 torchrun --nproc_per_node=1 --master_port=48798 main_finetune.py \
     --model RETFound_mae \

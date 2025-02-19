@@ -95,6 +95,11 @@ To fine tune RETFound on your own data, follow these steps:
 huggingface-cli login --token YOUR_HUGGINGFACE_TOKEN
 ```
 
+**Optional**: if your machine and server cannot access HuggingFace due to internet wall, run the command below (Do not run it if you can access):
+```
+export HF_ENDPOINT=https://hf-mirror.com
+```
+
 3. Organise your data into this directory structure (Public datasets used in this study can be [downloaded here](BENCHMARK.md))
 
 ```

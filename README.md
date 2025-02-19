@@ -1,9 +1,10 @@
 ## RETFound - A foundation model for retinal imaging
 
 
-Official repo including a series of retinal foundation models.
-[RETFound: a foundation model for generalizable disease detection from retinal images](https://www.nature.com/articles/s41586-023-06555-x), which is based on [MAE](https://github.com/facebookresearch/mae):
-[New checkpoints](https://www.nature.com/articles/s41586-023-06555-x), which is based on [DINOV2](https://github.com/facebookresearch/dinov2):
+Official repo including a series of retinal foundation models.<br>
+[RETFound: a foundation model for generalizable disease detection from retinal images](https://www.nature.com/articles/s41586-023-06555-x), which is based on [MAE](https://github.com/facebookresearch/mae).<br>
+[New checkpoints](https://huggingface.co/YukunZhou), some of which are based on [DINOV2](https://github.com/facebookresearch/dinov2):
+
 Please contact 	**ykzhoua@gmail.com** or **yukun.zhou.19@ucl.ac.uk** if you have questions.
 
 Keras version implemented by Yuka Kihara can be found [here](https://github.com/uw-biomedical-ml/RETFound_MAE)
@@ -85,7 +86,7 @@ To fine tune RETFound on your own data, follow these steps:
 </tr>
 <!-- TABLE BODY -->
 <tr><td align="left">RETFound_dinov2_shanghai</td>
-<td align="center"><a href="https://huggingface.co/YukunZhou/RETFound_dinov2_shanghai">download</a></td>
+<td align="center"><a href="https://huggingface.co/YukunZhou/RETFound_dinov2_shanghai">access</a></td>
 <td align="center">TBD</a></td>
 </tr>
 </tbody></table>

@@ -38,7 +38,7 @@ def get_args_parser():
                         help='Accumulate gradient iterations (for increasing the effective batch size under memory constraints)')
 
     # Model parameters
-    parser.add_argument('--model', default='vit_large_patch16', type=str, metavar='MODEL',
+    parser.add_argument('--model', default='RETFound_mae', type=str, metavar='MODEL',
                         help='Name of model to train')
     parser.add_argument('--input_size', default=256, type=int,
                         help='images input size')
@@ -146,8 +146,8 @@ def get_args_parser():
     return parser
 
 
-def main(args, criterion):
-    if args.resume and not args.eval:
+def main(args, criterion=None): # add 'None' for we have changed criterion in the main funciton with class weight
+    if args.resume and not args.eval: # 继续训练
         resume = args.resume
         checkpoint = torch.load(args.resume, map_location='cpu')
         print("Load checkpoint from: %s" % args.resume)
@@ -190,7 +190,8 @@ def main(args, criterion):
             repo_id=f'YukunZhou/{args.finetune}',
             filename=f'{args.finetune}.pth',
         )
-        
+        print("Downloaded weights to: %s" % checkpoint_path)
+
         checkpoint = torch.load(checkpoint_path, map_location='cpu')
         print("Load pre-trained checkpoint from: %s" % args.finetune)
         
@@ -222,6 +223,36 @@ def main(args, criterion):
     dataset_test = build_dataset(is_train='test', args=args)
 
 
+    '''
+    20250302: 
+     - confirm index mapping
+     - we add class weights here for imbalanced datasets
+    '''
+    # index mapping
+    mapping      = dataset_train.class_to_idx
+    train_labels = np.array(dataset_train.targets)
+    counts       = {cls: int(np.sum(train_labels == idx)) for cls, idx in mapping.items()}
+    # weight computing
+    from sklearn.utils.class_weight import compute_class_weight # to deal with in-balance data
+    cw = compute_class_weight('balanced', classes=np.unique(train_labels), y=train_labels)
+    cw = torch.tensor(cw, dtype=torch.float, device=args.device)
+    print("Combined class info:")
+    for cls, idx in mapping.items():
+        print(f"Class '{cls}': index = {idx}, count = {counts[cls]}, weight = {cw[idx]:.4f}")
+    # write out as records
+    if args.output_dir:
+        os.makedirs(args.output_dir, exist_ok=True)
+        output_path = os.path.join(args.output_dir, 'class_info.txt')
+        with open(output_path, 'w', encoding='utf-8') as f:
+            f.write("Combined class info:\n")
+            for cls, idx in mapping.items():
+                f.write(f"Class '{cls}': index = {idx}, count = {counts[cls]}, weight = {cw[idx]:.4f}\n")
+    print(f"Class info has been saved to: {output_path}")
+    # apply criterion with class weight
+    criterion = torch.nn.CrossEntropyLoss(weight=cw)
+
+
+    # back to original code
     if True:  # args.distributed:
         num_tasks = misc.get_world_size()
         global_rank = misc.get_rank()
@@ -256,6 +287,11 @@ def main(args, criterion):
     if global_rank == 0 and args.log_dir is not None and not args.eval:
         os.makedirs(args.log_dir, exist_ok=True)
         log_writer = SummaryWriter(log_dir=os.path.join(args.log_dir, args.task))
+        print(f">>>>>>>>>>>>>>>>>>>>>>>>>>>>>") # added a reminder
+        print(f"To view TensorBoard, run the following command in your terminal:")
+        print(f"tensorboard --logdir {args.log_dir} --reload_interval=30")
+        print("Then open your browser and navigate to: http://localhost:6006")
+        print(f">>>>>>>>>>>>>>>>>>>>>>>>>>>>>") # added a reminder
     else:
         log_writer = None
 
@@ -395,13 +431,12 @@ def main(args, criterion):
 
 
 if __name__ == '__main__':
-    args = get_args_parser()
-    args = args.parse_args()
+    args = get_args_parser().parse_args()
 
-    criterion = torch.nn.CrossEntropyLoss()
+    # criterion = torch.nn.CrossEntropyLoss() # use criterion in main function
 
     if args.output_dir:
         Path(args.output_dir).mkdir(parents=True, exist_ok=True)
-    main(args, criterion)
+    main(args)
 
 

@@ -14,6 +14,31 @@ from collections import defaultdict, deque
 import time
 import datetime
 import math
+import argparse
+
+def get_args_parser():
+    parser = argparse.ArgumentParser('BYOL fine-tuning for image classification', add_help=False)
+    # data loader
+    parser.add_argument('--batch_size', default=128, type=int)
+    parser.add_argument('--num_workers', default=8, type=int)
+    # scheduler
+    parser.add_argument('--epochs', default=250, type=int)
+    parser.add_argument('--cosine_t0', default=30, type=int)
+    parser.add_argument('--warmup_epochs', default=15, type=int)
+    parser.add_argument('--weight_decay', default=1e-4, type=float)
+    parser.add_argument('--lr_start_factor', default=0.01, type=float)
+    parser.add_argument('--min_lr', default=5e-6, type=float)
+    # byol parameters
+    parser.add_argument('--initial_tau', default=0.996, type=float)
+    parser.add_argument('--final_tau', default=0.999, type=float)
+    # Dataset parameters
+    parser.add_argument('--root', default="/mnt/d/3.dlProject/bdrv/data/pretraindata(crop)", type=str)
+    parser.add_argument('--save_dir', default="/mnt/d/3.dlProject/keyan/checkpoints", type=str)
+    # optimizer
+    parser.add_argument('--base_lr', default=5e-4, type=float)
+    return parser
+
+
 # 环境检查函数
 def check_environment():
     print(f"PyTorch版本: {torch.__version__}")
@@ -345,20 +370,20 @@ def save_checkpoint(epoch, model, optimizer, path):
     torch.save(state, path)
 
 
-def main():
+def main(args):
     # 环境检查
     check_environment()
 
     # 数据准备
     dataset = datasets.ImageFolder(
-        root=r"/mnt/d/3.dlProject/bdrv/data/pretraindata(crop)",
+        root=args.root,
         transform=OCTBYOLTransform()
     )
     dataloader = DataLoader(
         dataset,
-        batch_size=128,
+        batch_size= args.batch_siza,
         shuffle=True,
-        num_workers=8,
+        num_workers=args.num_workers,
         pin_memory=True,
         drop_last=True
     )
@@ -369,8 +394,8 @@ def main():
     model = BYOL_OCT().to(device)
 
     # 动态EMA动量配置
-    initial_tau = 0.996
-    final_tau = 0.999
+    initial_tau = args.initial_tau
+    final_tau = args.final_tau
     model.tau = initial_tau
 
     # 动态EMA动量更新函数
@@ -379,20 +404,20 @@ def main():
         model.tau = final_tau - (final_tau - initial_tau) * (1 + math.cos(math.pi * progress)) / 2
 
     # 优化器配置
-    base_lr = 4e-4
+    base_lr = args.base_lr
     # 增强权重衰减（对抗小数据过拟合）
-    optimizer = AdamW(model.parameters(), lr=base_lr, weight_decay=1e-4)
+    optimizer = AdamW(model.parameters(), lr=base_lr, weight_decay=args.weight_decay)
     # 学习率调度器
-    total_epochs = 250
-    warmup_epochs = 15
-    cosine_t0 = 30
+    total_epochs = args.epochs
+    warmup_epochs = args.warmup_epochs
+    cosine_t0 = args.cosine_t0
 
     scheduler = SequentialLR(
         optimizer,
         schedulers=[
             LinearLR(
                 optimizer,
-                start_factor=0.01,  # 从base_lr的1%开始
+                start_factor=args.lr_start_factor,  # 从base_lr的1%开始
                 end_factor=1.0,
                 total_iters=warmup_epochs
             ),
@@ -400,7 +425,7 @@ def main():
                 optimizer,
                 T_0=cosine_t0,
                 T_mult=1,  # 固定周期长度
-                eta_min=5e-4 * 0.01  # 最小学习率为初始值的1%
+                eta_min=args.min_lr  # 最小学习率为初始值的1%
             )
         ],
         milestones=[warmup_epochs]
@@ -408,7 +433,7 @@ def main():
     scaler = GradScaler()
 
     # 训练准备
-    save_dir = "/mnt/d/3.dlProject/keyan/checkpoints"
+    save_dir = args.save_dir
     os.makedirs(save_dir, exist_ok=True)
     # 建立训练日志
     log_writer = SummaryWriter(log_dir=save_dir)
@@ -434,4 +459,6 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    args = get_args_parser()
+    args = args.parse_args()
+    main(args)

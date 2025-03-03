@@ -25,7 +25,6 @@ def get_args_parser():
     parser.add_argument('--epochs', default=250, type=int)
     parser.add_argument('--cosine_t0', default=30, type=int)
     parser.add_argument('--warmup_epochs', default=15, type=int)
-    parser.add_argument('--weight_decay', default=1e-4, type=float)
     parser.add_argument('--lr_start_factor', default=0.01, type=float)
     parser.add_argument('--min_lr', default=5e-6, type=float)
     # byol parameters
@@ -36,6 +35,7 @@ def get_args_parser():
     parser.add_argument('--save_dir', default="/mnt/d/3.dlProject/keyan/checkpoints", type=str)
     # optimizer
     parser.add_argument('--base_lr', default=5e-4, type=float)
+    parser.add_argument('--weight_decay', default=1e-4, type=float)
     return parser
 
 

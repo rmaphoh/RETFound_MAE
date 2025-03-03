@@ -25,6 +25,8 @@ from engine_finetune import train_one_epoch, evaluate
 import warnings
 import faulthandler
 
+from util.WeightedFocalLoss import WeightedFocalLoss       # added focalloss for criterion 
+
 faulthandler.enable()
 warnings.simplefilter(action='ignore', category=FutureWarning)
 
@@ -60,6 +62,10 @@ def get_args_parser():
                         help='lower lr bound for cyclic schedulers that hit 0')
     parser.add_argument('--warmup_epochs', type=int, default=10, metavar='N',
                         help='epochs to warmup LR')
+    parser.add_argument('--focal_alpha', default=0.4, type=float, # for focal loss
+                        help='Alpha parameter for Focal Loss (default: 0.4)')
+    parser.add_argument('--focal_gamma', default=2.0, type=float, # for focal loss
+                        help='Gamma parameter for Focal Loss (default: 2.0)')
 
     # Augmentation parameters
     parser.add_argument('--color_jitter', type=float, default=None, metavar='PCT',
@@ -248,9 +254,14 @@ def main(args, criterion=None): # add 'None' for we have changed criterion in th
             for cls, idx in mapping.items():
                 f.write(f"Class '{cls}': index = {idx}, count = {counts[cls]}, weight = {cw[idx]:.4f}\n")
     print(f"Class info has been saved to: {output_path}")
-    # apply criterion with class weight
-    criterion = torch.nn.CrossEntropyLoss(weight=cw)
-
+    # >>> apply criterion with class weight, possibly use WeightedFocalLoss for imbalanced data
+    # criterion = torch.nn.CrossEntropyLoss(weight=cw)
+    criterion = WeightedFocalLoss(
+        alpha=0.4,         
+        gamma=2.0,         
+        class_weights=cw,  
+        reduction='mean'
+    )
 
     # back to original code
     if True:  # args.distributed:
